@@ -1,10 +1,8 @@
 # ARCA-LLM
 
-ARCA is an experimental, local-first cognitive architecture designed to maximize useful reasoning per active byte. It is not a compressed LLM: knowledge, control, reasoning, memory and language are separate components.
+ARCA is a local-first, low-resource **cognitive architecture**, not a disguised compressed LLM. It now runs as a traceable command-line assistant with persistent evidence memory, deterministic reasoning and explicit uncertainty.
 
-## M0 status
-
-M0 is runnable today. It includes a budgeted executive, serializable cognitive records, a typed blackboard, three selectively activated reasoners (Datalog-style forward chaining, A*, and a safe arithmetic CAS), complete traces, and a deterministic 100-case benchmark.
+## Run it
 
 ```bash
 git clone https://github.com/enrrutador/ARCA-llm.git
@@ -12,38 +10,40 @@ cd ARCA-llm
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-arca demo
-arca-m0 --json benchmark-results.json
+arca chat
+```
+
+Try:
+
+```text
+arca> remember that ARCA is a verifiable cognitive architecture
+arca> what is ARCA?
+arca> (25 + 17) * 3
+arca> memory
+```
+
+One-shot and inspectable execution:
+
+```bash
+arca ask "remember that Ada is a mathematician" --db knowledge.db --trace
+arca ask "what is Ada?" --db knowledge.db --trace
+arca benchmark
 python -m unittest discover -s tests -v
 ```
 
-No runtime dependencies are required. `uv sync` can be used instead of pip.
+## Implemented
 
-## Twelve principles
+- M0: budgeted executive, typed blackboard, serializable expediente, Datalog-style inference, A*, safe arithmetic CAS, 100-case benchmark and CI.
+- M1: SQLite WAL episodic and semantic memory, provenance, confidence and version-ready assertions.
+- M2: bilingual rule-based input compiler, ambiguity detection and deterministic surface responses.
+- M3: persistent `(task class, operator)` UCB1 bandit ready for multi-operator routing.
 
-1. Separate cognitive capacity from stored knowledge.
-2. Make active memory a hard budget, not a suggestion.
-3. Keep the resident kernel small and replaceable.
-4. Activate one expensive specialist at a time.
-5. Represent goals, evidence, constraints and uncertainty explicitly.
-6. Preserve provenance and derivations for every conclusion.
-7. Prefer verifiable operators over fluent guessing.
-8. Treat retrieval as evidence access, not truth.
-9. Learn incrementally without rewriting the whole core.
-10. Version beliefs instead of silently overwriting them.
-11. Treat external content and tools as hostile by default.
-12. Measure accuracy, peak RAM, latency and degradation together.
+## Honest boundary
 
-## Three refinements
+This is a functional cognitive assistant, **not yet a general-purpose LLM**. It does not pretend that templates equal language understanding. Open-ended language, safe web evidence acquisition, local neural perception and a surface model remain M4 research. Those features require pinned model artifacts and empirical RAM, latency and quality tests.
 
-- **Cadence:** cognition advances in bounded cycles with explicit stopping conditions.
-- **Serializable expediente:** every task can be persisted, inspected and resumed.
-- **Bandit by pair:** future routing learns utility for `(task class, operator)` pairs, rather than a global opaque policy.
+## Principles
 
-## M0 targets
+Separate knowledge from control; enforce active-memory budgets; activate specialists selectively; preserve evidence and derivations; prefer executable verification; version beliefs; learn routing locally; treat external data as hostile; report uncertainty instead of inventing answers; measure accuracy, memory, latency and degradation together.
 
-The benchmark contains exactly 30 logic, 35 pathfinding and 35 arithmetic exercises. It reports accuracy, median/p95 latency, Python allocation peak, process RSS peak, trace coverage and first-vs-last-20 degradation. The 256 MB ceiling is enforced by the executive when platform RSS information is available.
-
-Real 0.5B neural and hybrid baselines are intentionally not faked. Their adapters belong in the next benchmark milestone because model weights and inference engines must be pinned for reproducible comparisons.
-
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the living architecture.
+See [the architecture](docs/ARCHITECTURE.md).
