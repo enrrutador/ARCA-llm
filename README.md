@@ -1,49 +1,23 @@
 # ARCA-LLM
 
-ARCA is a local-first, low-resource **cognitive architecture**, not a disguised compressed LLM. It now runs as a traceable command-line assistant with persistent evidence memory, deterministic reasoning and explicit uncertainty.
+ARCA es un **modelo de lenguaje propio** y su capacidad se adquiere mediante un ciclo de aprendizaje local controlado: consulta la web, recupera evidencia, la guarda con procedencia, la incorpora a un corpus local y actualiza sus propios pesos con entrenamiento incremental. No utiliza Qwen, Llama, Phi ni pesos externos.
 
-## Run it
+## Entrenar, generar y aprender de la web
 
 ```bash
-git clone https://github.com/enrrutador/ARCA-llm.git
-cd ARCA-llm
-python3.12 -m venv .venv
-source .venv/bin/activate
 pip install -e .
-arca chat
+arca-native-lm train --text corpus.txt --output models/arca-native.npz --epochs 20
+arca-native-lm generate --model models/arca-native.npz "ARCA:"
+arca-native-lm learn-web --model models/arca-native.npz --query "computación cognitiva eficiente" --epochs 1
+arca chat --model models/arca-native.npz
 ```
 
-Try:
+El aprendizaje web es deliberadamente acotado: solo acepta HTTP(S), ignora binarios, limita bytes, deduplica contenido por SHA-256, conserva URL/fuente/fecha, no ejecuta instrucciones recuperadas y actualiza el modelo en ciclos pequeños. La web aporta conocimiento y datos de entrenamiento; no sustituye al modelo.
 
-```text
-arca> remember that ARCA is a verifiable cognitive architecture
-arca> what is ARCA?
-arca> (25 + 17) * 3
-arca> memory
-```
+## Arquitectura
 
-One-shot and inspectable execution:
+El modelo es byte-level autoregresivo recurrente, entrenable desde cero con NumPy. Su estado recurrente es memoria de trabajo activa; memoria semántica, episódica y documental viven fuera de los pesos. El kernel decide cuándo recuperar, verificar, guardar y consolidar.
 
-```bash
-arca ask "remember that Ada is a mathematician" --db knowledge.db --trace
-arca ask "what is Ada?" --db knowledge.db --trace
-arca benchmark
-python -m unittest discover -s tests -v
-```
+## Capacidad real
 
-## Implemented
-
-- M0: budgeted executive, typed blackboard, serializable expediente, Datalog-style inference, A*, safe arithmetic CAS, 100-case benchmark and CI.
-- M1: SQLite WAL episodic and semantic memory, provenance, confidence and version-ready assertions.
-- M2: bilingual rule-based input compiler, ambiguity detection and deterministic surface responses.
-- M3: persistent `(task class, operator)` UCB1 bandit ready for multi-operator routing.
-
-## Honest boundary
-
-This is a functional cognitive assistant, **not yet a general-purpose LLM**. It does not pretend that templates equal language understanding. Open-ended language, safe web evidence acquisition, local neural perception and a surface model remain M4 research. Those features require pinned model artifacts and empirical RAM, latency and quality tests.
-
-## Principles
-
-Separate knowledge from control; enforce active-memory budgets; activate specialists selectively; preserve evidence and derivations; prefer executable verification; version beliefs; learn routing locally; treat external data as hostile; report uncertainty instead of inventing answers; measure accuracy, memory, latency and degradation together.
-
-See [the architecture](docs/ARCHITECTURE.md).
+Funciona como LLM nativo experimental, pero la capacidad no aparece mágicamente: necesita corpus inicial, tiempo de CPU y ciclos de aprendizaje. La web puede ampliar conocimiento, pero no convierte automáticamente un modelo pequeño en uno frontier; medimos pérdida, RAM, latencia, procedencia y degradación.
