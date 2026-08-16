@@ -1,49 +1,32 @@
 # ARCA-LLM
 
-ARCA is a local-first, low-resource **cognitive architecture**, not a disguised compressed LLM. It now runs as a traceable command-line assistant with persistent evidence memory, deterministic reasoning and explicit uncertainty.
+Ahora ARCA es un **modelo de lenguaje propio**, no un LLM externo conectado. El núcleo generativo es un modelo autoregresivo recurrente byte-level, entrenable desde cero con NumPy, sin Transformer obligatorio, sin pesos de Qwen/Llama/Phi y sin `llama.cpp`.
 
-## Run it
+## Entrenar y ejecutar
 
 ```bash
-git clone https://github.com/enrrutador/ARCA-llm.git
-cd ARCA-llm
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-arca chat
+
+# corpus propio, UTF-8
+arca-native-lm train --text corpus.txt --output models/arca-native.npz --epochs 20
+arca-native-lm generate --model models/arca-native.npz "ARCA:"
+arca chat --model models/arca-native.npz
 ```
 
-Try:
+También funciona sin un modelo entrenado: memoria, web, cálculo, Datalog y A* siguen disponibles.
 
-```text
-arca> remember that ARCA is a verifiable cognitive architecture
-arca> what is ARCA?
-arca> (25 + 17) * 3
-arca> memory
-```
+## Qué se corrigió
 
-One-shot and inspectable execution:
+- **No se añadió un LLM externo.** Qwen/llama.cpp fue descartado y el PR correspondiente se cerró.
+- ARCA tiene su propio modelo autoregresivo entrenable desde cero.
+- La representación es byte-level y el estado recurrente funciona como memoria de trabajo activa.
+- El modelo se puede guardar/cargar como pesos `.npz` y el asistente lo usa para lenguaje abierto.
+- Memoria persistente, procedencia, herramientas y razonadores siguen fuera de los pesos.
 
-```bash
-arca ask "remember that Ada is a mathematician" --db knowledge.db --trace
-arca ask "what is Ada?" --db knowledge.db --trace
-arca benchmark
-python -m unittest discover -s tests -v
-```
+## Límite técnico real
 
-## Implemented
+Esto es funcional como modelo de lenguaje experimental, pero un modelo pequeño entrenado con un corpus pequeño no posee la capacidad de un LLM grande. Para obtener competencia amplia hacen falta corpus, entrenamiento, evaluación y mucho tiempo de CPU. La especificación de 1 GB de RAM activa es un objetivo medible, no una garantía automática.
 
-- M0: budgeted executive, typed blackboard, serializable expediente, Datalog-style inference, A*, safe arithmetic CAS, 100-case benchmark and CI.
-- M1: SQLite WAL episodic and semantic memory, provenance, confidence and version-ready assertions.
-- M2: bilingual rule-based input compiler, ambiguity detection and deterministic surface responses.
-- M3: persistent `(task class, operator)` UCB1 bandit ready for multi-operator routing.
-
-## Honest boundary
-
-This is a functional cognitive assistant, **not yet a general-purpose LLM**. It does not pretend that templates equal language understanding. Open-ended language, safe web evidence acquisition, local neural perception and a surface model remain M4 research. Those features require pinned model artifacts and empirical RAM, latency and quality tests.
-
-## Principles
-
-Separate knowledge from control; enforce active-memory budgets; activate specialists selectively; preserve evidence and derivations; prefer executable verification; version beliefs; learn routing locally; treat external data as hostile; report uncertainty instead of inventing answers; measure accuracy, memory, latency and degradation together.
-
-See [the architecture](docs/ARCHITECTURE.md).
+La arquitectura cumple la decisión importante: **ARCA es el modelo**, no un orquestador que envuelve un modelo ajeno.
