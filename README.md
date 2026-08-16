@@ -1,32 +1,23 @@
 # ARCA-LLM
 
-Ahora ARCA es un **modelo de lenguaje propio**, no un LLM externo conectado. El núcleo generativo es un modelo autoregresivo recurrente byte-level, entrenable desde cero con NumPy, sin Transformer obligatorio, sin pesos de Qwen/Llama/Phi y sin `llama.cpp`.
+ARCA es un **modelo de lenguaje propio** y su capacidad se adquiere mediante un ciclo de aprendizaje local controlado: consulta la web, recupera evidencia, la guarda con procedencia, la incorpora a un corpus local y actualiza sus propios pesos con entrenamiento incremental. No utiliza Qwen, Llama, Phi ni pesos externos.
 
-## Entrenar y ejecutar
+## Entrenar, generar y aprender de la web
 
 ```bash
-python3.12 -m venv .venv
-source .venv/bin/activate
 pip install -e .
-
-# corpus propio, UTF-8
 arca-native-lm train --text corpus.txt --output models/arca-native.npz --epochs 20
 arca-native-lm generate --model models/arca-native.npz "ARCA:"
+arca-native-lm learn-web --model models/arca-native.npz --query "computación cognitiva eficiente" --epochs 1
 arca chat --model models/arca-native.npz
 ```
 
-También funciona sin un modelo entrenado: memoria, web, cálculo, Datalog y A* siguen disponibles.
+El aprendizaje web es deliberadamente acotado: solo acepta HTTP(S), ignora binarios, limita bytes, deduplica contenido por SHA-256, conserva URL/fuente/fecha, no ejecuta instrucciones recuperadas y actualiza el modelo en ciclos pequeños. La web aporta conocimiento y datos de entrenamiento; no sustituye al modelo.
 
-## Qué se corrigió
+## Arquitectura
 
-- **No se añadió un LLM externo.** Qwen/llama.cpp fue descartado y el PR correspondiente se cerró.
-- ARCA tiene su propio modelo autoregresivo entrenable desde cero.
-- La representación es byte-level y el estado recurrente funciona como memoria de trabajo activa.
-- El modelo se puede guardar/cargar como pesos `.npz` y el asistente lo usa para lenguaje abierto.
-- Memoria persistente, procedencia, herramientas y razonadores siguen fuera de los pesos.
+El modelo es byte-level autoregresivo recurrente, entrenable desde cero con NumPy. Su estado recurrente es memoria de trabajo activa; memoria semántica, episódica y documental viven fuera de los pesos. El kernel decide cuándo recuperar, verificar, guardar y consolidar.
 
-## Límite técnico real
+## Capacidad real
 
-Esto es funcional como modelo de lenguaje experimental, pero un modelo pequeño entrenado con un corpus pequeño no posee la capacidad de un LLM grande. Para obtener competencia amplia hacen falta corpus, entrenamiento, evaluación y mucho tiempo de CPU. La especificación de 1 GB de RAM activa es un objetivo medible, no una garantía automática.
-
-La arquitectura cumple la decisión importante: **ARCA es el modelo**, no un orquestador que envuelve un modelo ajeno.
+Funciona como LLM nativo experimental, pero la capacidad no aparece mágicamente: necesita corpus inicial, tiempo de CPU y ciclos de aprendizaje. La web puede ampliar conocimiento, pero no convierte automáticamente un modelo pequeño en uno frontier; medimos pérdida, RAM, latencia, procedencia y degradación.

@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from arca.memory import MemoryStore
+from arca.native_lm.learner import WebLearner
 from arca.native_lm.model import ARCALanguageModel, ModelConfig
 
 
@@ -20,16 +22,26 @@ def main() -> None:
     run.add_argument("prompt")
     run.add_argument("--tokens", type=int, default=160)
     run.add_argument("--temperature", type=float, default=0.8)
+    learn = sub.add_parser("learn-web")
+    learn.add_argument("--model", type=Path, required=True)
+    learn.add_argument("--query", required=True)
+    learn.add_argument("--db", type=Path, default=Path("arca.db"))
+    learn.add_argument("--corpus", type=Path, default=Path("corpus/web"))
+    learn.add_argument("--limit", type=int, default=3)
+    learn.add_argument("--epochs", type=int, default=1)
     args = parser.parse_args()
     if args.command == "train":
         model = ARCALanguageModel(ModelConfig(hidden_size=args.hidden, embedding_size=args.embedding))
-        text = args.text.read_text(encoding="utf-8")
-        losses = model.train_text(text, epochs=args.epochs)
+        losses = model.train_text(args.text.read_text(encoding="utf-8"), epochs=args.epochs)
         model.save(args.output)
         print(f"saved {args.output}; losses={', '.join(f'{x:.4f}' for x in losses)}")
+    elif args.command == "generate":
+        print(ARCALanguageModel.load(args.model).generate(args.prompt, args.tokens, args.temperature))
     else:
         model = ARCALanguageModel.load(args.model)
-        print(model.generate(args.prompt, args.tokens, args.temperature))
+        report = WebLearner(model, MemoryStore(args.db), corpus_dir=args.corpus).learn(args.query, args.limit, args.epochs)
+        model.save(args.model)
+        print(WebLearner.report_json(report))
 
 
 if __name__ == "__main__":
