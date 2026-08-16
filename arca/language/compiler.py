@@ -16,6 +16,8 @@ class Intent:
 _MATH = re.compile(r"^[\d\s+\-*/().%^]+$")
 _REMEMBER = re.compile(r"^(?:remember|recuerda|memoriza)\s+(?:that\s+|que\s+)?(.+?)\s+(?:is|es|son|means|significa)\s+(.+)$", re.I)
 _WHAT = re.compile(r"^(?:what (?:is|are)|qué es|que es|quién es|quien es)\s+(.+?)[?¿]*$", re.I)
+_SEARCH = re.compile(r"^(?:search|buscar|busca|investiga|investigate)\s+(?:for\s+|sobre\s+|acerca de\s+)?(.+)$", re.I)
+_OPEN = re.compile(r"^(?:open|abrir|abre|fetch)\s+(https?://\S+)$", re.I)
 
 
 def compile_text(text: str) -> Intent:
@@ -25,6 +27,12 @@ def compile_text(text: str) -> Intent:
     match = _REMEMBER.match(clean)
     if match:
         return Intent("remember", {"subject": match.group(1), "predicate": "is", "object": match.group(2)})
+    match = _SEARCH.match(clean)
+    if match:
+        return Intent("web_search", {"query": match.group(1)})
+    match = _OPEN.match(clean)
+    if match:
+        return Intent("web_fetch", {"url": match.group(1)})
     lowered = clean.casefold()
     if lowered in {"help", "ayuda", "?"}:
         return Intent("help")
