@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install
+        run: python -m pip install -e .
+      - name: Unit tests
+        run: python -m unittest discover -s tests -v
+      - name: M0 benchmark
+        run: |
+          python -m arca.benchmark --json benchmark-results.json
+          python - <<'PY'
+          import json
+          report = json.load(open("benchmark-results.json"))
+          failed = [name for name, passed in report["targets"].items() if not passed]
+          if failed:
+              raise SystemExit(f"M0 targets failed: {failed}")
+          print("M0 targets passed")
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: m0-benchmark
+          path: benchmark-results.json

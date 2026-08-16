@@ -4,7 +4,7 @@ import argparse
 import json
 
 from arca.app import build_executive
-from arca.benchmark import main as benchmark_main
+from arca.benchmark import run
 from arca.model import Task
 
 
@@ -28,11 +28,12 @@ def demo() -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(prog="arca")
     parser.add_argument("command", choices=["demo", "benchmark"])
-    args, unknown = parser.parse_known_args()
+    args = parser.parse_args()
     if args.command == "demo":
         demo()
     else:
-        benchmark_main()
+        report = run()
+        print(json.dumps({k: v for k, v in report.items() if k != "rows"}, indent=2))
 
 
 if __name__ == "__main__":
