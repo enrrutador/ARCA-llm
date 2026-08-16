@@ -6,6 +6,7 @@ import json
 from arca.app import build_executive
 from arca.assistant import CognitiveAssistant
 from arca.benchmark import run
+from arca.llm import LLMConfig, LocalLLM
 from arca.model import Task
 
 
@@ -14,8 +15,13 @@ def demo() -> None:
     print(json.dumps(build_executive().execute(task).to_dict(), indent=2, ensure_ascii=False))
 
 
-def chat(db: str) -> None:
-    assistant = CognitiveAssistant(db)
+def assistant_from_args(args) -> CognitiveAssistant:
+    llm = LocalLLM(LLMConfig(args.model, context_size=args.context, threads=args.threads, max_tokens=args.max_tokens)) if args.model else None
+    return CognitiveAssistant(args.db, llm=llm)
+
+
+def chat(args) -> None:
+    assistant = assistant_from_args(args)
     print("ARCA local cognitive assistant. Type 'help' or 'exit'.")
     while True:
         try:
@@ -31,9 +37,13 @@ def chat(db: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="arca")
-    parser.add_argument("command", choices=["demo", "benchmark", "chat", "ask"])
+    parser.add_argument("command", choices=["demo", "benchmark", "chat", "ask", "download-model"])
     parser.add_argument("text", nargs="*")
     parser.add_argument("--db", default="arca.db")
+    parser.add_argument("--model", help="path to a compatible GGUF model")
+    parser.add_argument("--context", type=int, default=2048)
+    parser.add_argument("--threads", type=int, default=4)
+    parser.add_argument("--max-tokens", type=int, default=256)
     parser.add_argument("--trace", action="store_true")
     args = parser.parse_args()
     if args.command == "demo":
@@ -41,10 +51,13 @@ def main() -> None:
     elif args.command == "benchmark":
         report = run()
         print(json.dumps({k: v for k, v in report.items() if k != "rows"}, indent=2))
+    elif args.command == "download-model":
+        from arca.llm.download import main as download_main
+        download_main()
     elif args.command == "chat":
-        chat(args.db)
+        chat(args)
     else:
-        response = CognitiveAssistant(args.db).ask(" ".join(args.text))
+        response = assistant_from_args(args).ask(" ".join(args.text))
         print(json.dumps(response if args.trace else {"answer": response["answer"]}, indent=2, ensure_ascii=False))
 
 

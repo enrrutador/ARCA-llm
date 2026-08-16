@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "arca-llm"
-version = "0.1.0"
-description = "Low-resource, verifiable cognitive architecture"
+version = "0.2.0"
+description = "Low-resource, verifiable cognitive architecture with local LLM backend"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.12"
@@ -14,10 +14,12 @@ dependencies = []
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
+local-llm = ["llama-cpp-python>=0.3.0"]
 
 [project.scripts]
 arca = "arca.cli:main"
 arca-m0 = "arca.benchmark:main"
+arca-download-model = "arca.llm.download:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["arca"]

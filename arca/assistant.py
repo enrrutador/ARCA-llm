@@ -11,10 +11,11 @@ from arca.web import WebEvidenceClient
 
 
 class CognitiveAssistant:
-    def __init__(self, db_path: str | Path = "arca.db", web: WebEvidenceClient | None = None) -> None:
+    def __init__(self, db_path: str | Path = "arca.db", web: WebEvidenceClient | None = None, llm=None) -> None:
         self.memory = MemoryStore(db_path)
         self.executive = build_executive()
         self.web = web or WebEvidenceClient()
+        self.llm = llm
 
     def ask(self, text: str) -> dict[str, Any]:
         intent = compile_text(text)
@@ -27,6 +28,8 @@ class CognitiveAssistant:
         elif intent.kind == "recall":
             query = intent.payload["query"]
             rows = self._all_recent() if query == "*" else self.memory.recall(query)
+            if not rows and self.llm is not None:
+                return self._ask_llm(text)
             record = Expediente(text, "recall")
             record.result = rows
             record.trace.append(TraceStep("retrieve", f"retrieved {len(rows)} active assertions"))
@@ -41,6 +44,8 @@ class CognitiveAssistant:
             record.result = "Commands: arithmetic, remember, what is, memory, search, open URL, trace."
             record.trace.append(TraceStep("help", "reported local capabilities"))
             record.telemetry = {"success": True}
+        elif self.llm is not None:
+            return self._ask_llm(text)
         else:
             record = Expediente(text, "clarify")
             record.result = intent.ambiguity
@@ -48,6 +53,15 @@ class CognitiveAssistant:
             record.telemetry = {"success": False, "confidence": intent.confidence}
         self.memory.save_episode(record)
         return {"answer": render(record.task_kind, record.result, len(record.trace)), "expediente": record.to_dict()}
+
+    def _ask_llm(self, text: str) -> dict[str, Any]:
+        result = self.llm.complete(text, system="""You are the language model inside ARCA. Answer in the user's language. Be explicit about uncertainty. Local memory and verified tool results outrank your prior knowledge. Never claim to have browsed unless ARCA supplied evidence.""")
+        record = Expediente(text, "llm")
+        record.result = result["text"]
+        record.trace.append(TraceStep("llm.generate", "local GGUF inference", evidence=(result["model"],)))
+        record.telemetry = {"success": True, "model": result["model"], "usage": result.get("usage", {})}
+        self.memory.save_episode(record)
+        return {"answer": result["text"], "expediente": record.to_dict()}
 
     def _web(self, intent) -> Expediente:
         record = Expediente(intent.payload.get("query", intent.payload.get("url", "")), intent.kind)
