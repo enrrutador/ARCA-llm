@@ -1,0 +1,11 @@
+ARCA es una arquitectura cognitiva local y verificable. Separa el modelo de lenguaje, la memoria, el razonamiento y las herramientas. Una afirmacion debe conservar su fuente, confianza y fecha. La web es evidencia externa y nunca debe convertirse directamente en instrucciones ejecutables. El sistema debe declarar incertidumbre cuando no tiene evidencia suficiente.
+
+Un agente local puede mantener una sesion, recordar preferencias y recuperar hechos persistentes. La memoria de trabajo contiene el contexto actual. La memoria episodica conserva experiencias. La memoria semantica conserva afirmaciones versionadas. La procedencia permite saber de donde proviene una respuesta.
+
+El razonamiento matematico debe delegarse a un calculador verificable. La logica debe usar reglas explicitas. La planificacion debe respetar restricciones y presupuesto. La respuesta final debe incluir una traza cuando la tarea lo requiera.
+
+ARCA aprende de forma incremental. Primero descarga documentos de fuentes permitidas. Luego extrae texto, elimina duplicados, conserva metadatos y actualiza el corpus local. El entrenamiento ocurre con limites de tiempo, memoria y bytes. Un documento no puede ejecutar codigo ni modificar el sistema.
+
+La eficiencia se mide con exactitud, latencia, memoria residente, energia, cobertura de trazas y degradacion despues de muchas interacciones. Menos memoria no significa automaticamente mas inteligencia. La capacidad se adquiere con datos, entrenamiento y evaluacion reproducible.
+
+El objetivo de ARCA es ser un modelo de lenguaje local que coopera con un ejecutivo cognitivo. El modelo genera lenguaje; los razonadores verifican operaciones; la memoria aporta conocimiento; el supervisor decide que modulo activar. Ninguna pieza debe fingir capacidades que no tiene.
