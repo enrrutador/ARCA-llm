@@ -1,0 +1,10 @@
+{
+  "description": "Small deterministic smoke evaluation for native ARCA generation. This is not a quality claim.",
+  "prompts": [
+    "ARCA es",
+    "La memoria",
+    "El razonamiento",
+    "La web"
+  ],
+  "required": ["nonempty", "model_loads", "memory_under_budget"]
+}

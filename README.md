@@ -1,20 +1,29 @@
 # ARCA-LLM
 
-ARCA es un modelo de lenguaje propio con una arquitectura cognitiva persistente alrededor. Esta versión añade un backend estable para integrarlo directamente en OpenCode o cualquier agente compatible con OpenAI Chat Completions.
+ARCA es un modelo de lenguaje propio con arquitectura cognitiva persistente alrededor. El PR de integración OpenCode ya está fusionado en `main`; esta versión agrega un pipeline reproducible de corpus real y entrenamiento local.
 
-## Flujo completo local
+## Probarlo
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-arca-native-lm train --text corpus.txt --output models/arca-native.npz --epochs 20
+
+# El repositorio trae un corpus semilla real y versionado para probar el flujo
+arca-native-lm train --corpus corpus/seed --output models/arca-native.npz --epochs 20
+arca-native-lm generate --model models/arca-native.npz "ARCA es"
 arca-serve --model models/arca-native.npz --db arca.db
 ```
 
-Servidor: `http://127.0.0.1:8787/v1`.
+El servidor queda en `http://127.0.0.1:8787/v1`, compatible con OpenCode vía `@ai-sdk/openai-compatible`. Para ampliar capacidad, incorporá documentos aceptados al corpus o ejecutá `arca-native-lm learn-web`, revisá la procedencia y volvé a entrenar.
 
-### Configuración OpenCode
+## Qué es realmente
+
+El modelo es byte-level autoregresivo recurrente, entrenado desde cero con NumPy. No usa Qwen, Llama, Phi, NVIDIA ni pesos externos. La memoria, razonadores, web y trazabilidad son órganos separados de ARCA.
+
+El entrenamiento ahora es reproducible: corpus deduplicado, manifest de procedencia, límite de bytes, informe de pérdida, conteo de parámetros y evaluación básica. El modelo generado funciona como LLM experimental local; la calidad depende directamente del tamaño y calidad del corpus. La web puede aportar datos, pero no convierte automáticamente un modelo pequeño en un modelo de frontera.
+
+## OpenCode
 
 ```json
 {
@@ -29,12 +38,4 @@ Servidor: `http://127.0.0.1:8787/v1`.
 }
 ```
 
-Luego seleccioná `arca/arca-native` en OpenCode. El endpoint implementa `GET /v1/models` y `POST /v1/chat/completions`, conserva sesiones con `X-ARCA-Session`, devuelve trazas y telemetría en el campo `arca`, y no usa pesos externos.
-
-## Entrenamiento y datos
-
-`CorpusStore` deduplica textos por SHA-256 y guarda manifest con URL/fuente. El corpus web debe pasar por recuperación, límites de bytes, validación de contenido y revisión de procedencia antes de entrenar. La web aporta datos, no instrucciones ejecutables.
-
-## Estado honesto
-
-El endpoint es funcional y la integración de agente es real. El modelo nativo es un prototipo recurrente pequeño: no tiene la capacidad de GPT/Claude sin un corpus y entrenamiento sustanciales. Antes de usarlo en producción hay que medir calidad, RAM, latencia y estabilidad en el teléfono objetivo.
+Usá `/models` y seleccioná `arca/arca-native`.
