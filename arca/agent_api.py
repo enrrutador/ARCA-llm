@@ -7,6 +7,7 @@ from typing import Any, Protocol
 from arca.assistant import CognitiveAssistant
 from arca.conversation import ConversationIntelligence, ConversationMemory, ConversationState, ResponseQuality
 from arca.native_lm import ARCALanguageModel
+from arca.model import Expediente, TraceStep
 
 
 @dataclass(frozen=True, slots=True)
@@ -32,15 +33,31 @@ class ARCAAgentBackend:
     def respond(self, message: str, session_id: str = "default") -> AgentResponse:
         state: ConversationState = self.sessions.load(session_id)
         normalized = ConversationIntelligence.resolve_references(message.strip(), state)
+        intent = ConversationIntelligence.classify(normalized)
         context = self.sessions.context(state)
-        prompt = ConversationIntelligence.build_prompt(normalized, state, context)
         self.sessions.add(state, "user", normalized)
-        result = self.assistant.ask(prompt)
-        text = ResponseQuality.clean(result["answer"], prompt)
+
+        # Route structured intents through ARCA's memory/reasoners. Only open
+        # generation uses the native LM directly, avoiding prompt text being
+        # misclassified as a memory command.
+        if intent in {"memory_write", "memory_read", "web_research", "calculation"}:
+            result = self.assistant.ask(normalized)
+            text = ResponseQuality.clean(result["answer"], normalized)
+            expediente = result["expediente"]
+            trace = tuple(expediente.get("trace", []))
+            telemetry = dict(expediente.get("telemetry", {}))
+        else:
+            prompt = ConversationIntelligence.build_prompt(normalized, state, context)
+            generated = self.assistant.model.generate(prompt, max_tokens=160, seed=42)
+            text = ResponseQuality.clean(generated, prompt)
+            trace = (TraceStep("native_lm.generate", "ARCA recurrent model with bounded session context").__dict__,)
+            telemetry = {"success": bool(text), "external_weights": False, "model": "ARCA-native-recurrent"}
+            expediente = Expediente(normalized, "native_llm", result=text, trace=[TraceStep("native_lm.generate", "bounded session generation")], telemetry=telemetry)
+            self.assistant.memory.save_episode(expediente)
+
         self.sessions.add(state, "assistant", text)
         self.sessions.compress(state)
-        telemetry = dict(result["expediente"].get("telemetry", {}))
-        telemetry.update({"session_id": session_id, "intent": ConversationIntelligence.classify(normalized), "context_turns": len(state.turns), "salient_facts": len(state.salient_facts), "model": "ARCA-native-recurrent", "external_weights": False})
-        telemetry.update(ResponseQuality.telemetry(text, prompt))
-        trace = tuple(result["expediente"].get("trace", []))
-        return AgentResponse(text, bool(telemetry.get("success", True)) and not telemetry["quality_warning"], trace, telemetry)
+        telemetry.update({"session_id": session_id, "intent": intent, "context_turns": len(state.turns), "salient_facts": len(state.salient_facts), "model": "ARCA-native-recurrent", "external_weights": False})
+        telemetry.update(ResponseQuality.telemetry(text, normalized))
+        success = bool(telemetry.get("success", True)) and not bool(telemetry.get("quality_warning", False))
+        return AgentResponse(text, success, trace, telemetry)
