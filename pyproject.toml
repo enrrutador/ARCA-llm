@@ -4,19 +4,21 @@ build-backend = "hatchling.build"
 
 [project]
 name = "arca-llm"
-version = "0.1.0"
-description = "Low-resource, verifiable cognitive architecture"
+version = "0.4.0"
+description = "Native low-resource ARCA language model and OpenCode-compatible cognitive agent"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.12"
 authors = [{name = "enrrutador"}]
-dependencies = []
+dependencies = ["numpy>=1.26"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0", "ruff>=0.6"]
 
 [project.scripts]
 arca = "arca.cli:main"
+arca-native-lm = "arca.native_lm.cli:main"
+arca-serve = "arca.server:main"
 arca-m0 = "arca.benchmark:main"
 
 [tool.hatch.build.targets.wheel]

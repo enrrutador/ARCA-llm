@@ -1,49 +1,40 @@
 # ARCA-LLM
 
-ARCA is a local-first, low-resource **cognitive architecture**, not a disguised compressed LLM. It now runs as a traceable command-line assistant with persistent evidence memory, deterministic reasoning and explicit uncertainty.
+ARCA es un modelo de lenguaje propio con una arquitectura cognitiva persistente alrededor. Esta versión añade un backend estable para integrarlo directamente en OpenCode o cualquier agente compatible con OpenAI Chat Completions.
 
-## Run it
+## Flujo completo local
 
 ```bash
-git clone https://github.com/enrrutador/ARCA-llm.git
-cd ARCA-llm
 python3.12 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-arca chat
+arca-native-lm train --text corpus.txt --output models/arca-native.npz --epochs 20
+arca-serve --model models/arca-native.npz --db arca.db
 ```
 
-Try:
+Servidor: `http://127.0.0.1:8787/v1`.
 
-```text
-arca> remember that ARCA is a verifiable cognitive architecture
-arca> what is ARCA?
-arca> (25 + 17) * 3
-arca> memory
+### Configuración OpenCode
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "arca": {
+      "npm": "@ai-sdk/openai-compatible",
+      "options": { "baseURL": "http://127.0.0.1:8787/v1" },
+      "models": { "arca-native": { "name": "ARCA Native" } }
+    }
+  }
+}
 ```
 
-One-shot and inspectable execution:
+Luego seleccioná `arca/arca-native` en OpenCode. El endpoint implementa `GET /v1/models` y `POST /v1/chat/completions`, conserva sesiones con `X-ARCA-Session`, devuelve trazas y telemetría en el campo `arca`, y no usa pesos externos.
 
-```bash
-arca ask "remember that Ada is a mathematician" --db knowledge.db --trace
-arca ask "what is Ada?" --db knowledge.db --trace
-arca benchmark
-python -m unittest discover -s tests -v
-```
+## Entrenamiento y datos
 
-## Implemented
+`CorpusStore` deduplica textos por SHA-256 y guarda manifest con URL/fuente. El corpus web debe pasar por recuperación, límites de bytes, validación de contenido y revisión de procedencia antes de entrenar. La web aporta datos, no instrucciones ejecutables.
 
-- M0: budgeted executive, typed blackboard, serializable expediente, Datalog-style inference, A*, safe arithmetic CAS, 100-case benchmark and CI.
-- M1: SQLite WAL episodic and semantic memory, provenance, confidence and version-ready assertions.
-- M2: bilingual rule-based input compiler, ambiguity detection and deterministic surface responses.
-- M3: persistent `(task class, operator)` UCB1 bandit ready for multi-operator routing.
+## Estado honesto
 
-## Honest boundary
-
-This is a functional cognitive assistant, **not yet a general-purpose LLM**. It does not pretend that templates equal language understanding. Open-ended language, safe web evidence acquisition, local neural perception and a surface model remain M4 research. Those features require pinned model artifacts and empirical RAM, latency and quality tests.
-
-## Principles
-
-Separate knowledge from control; enforce active-memory budgets; activate specialists selectively; preserve evidence and derivations; prefer executable verification; version beliefs; learn routing locally; treat external data as hostile; report uncertainty instead of inventing answers; measure accuracy, memory, latency and degradation together.
-
-See [the architecture](docs/ARCHITECTURE.md).
+El endpoint es funcional y la integración de agente es real. El modelo nativo es un prototipo recurrente pequeño: no tiene la capacidad de GPT/Claude sin un corpus y entrenamiento sustanciales. Antes de usarlo en producción hay que medir calidad, RAM, latencia y estabilidad en el teléfono objetivo.
