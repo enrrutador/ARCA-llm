@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -37,9 +37,6 @@ class ARCAAgentBackend:
         context = self.sessions.context(state)
         self.sessions.add(state, "user", normalized)
 
-        # Route structured intents through ARCA's memory/reasoners. Only open
-        # generation uses the native LM directly, avoiding prompt text being
-        # misclassified as a memory command.
         if intent in {"memory_write", "memory_read", "web_research", "calculation"}:
             result = self.assistant.ask(normalized)
             text = ResponseQuality.clean(result["answer"], normalized)
@@ -50,9 +47,10 @@ class ARCAAgentBackend:
             prompt = ConversationIntelligence.build_prompt(normalized, state, context)
             generated = self.assistant.model.generate(prompt, max_tokens=160, seed=42)
             text = ResponseQuality.clean(generated, prompt)
-            trace = (TraceStep("native_lm.generate", "ARCA recurrent model with bounded session context").__dict__,)
+            step = TraceStep("native_lm.generate", "ARCA recurrent model with bounded session context")
+            trace = (asdict(step),)
             telemetry = {"success": bool(text), "external_weights": False, "model": "ARCA-native-recurrent"}
-            expediente = Expediente(normalized, "native_llm", result=text, trace=[TraceStep("native_lm.generate", "bounded session generation")], telemetry=telemetry)
+            expediente = Expediente(normalized, "native_llm", result=text, trace=[step], telemetry=telemetry)
             self.assistant.memory.save_episode(expediente)
 
         self.sessions.add(state, "assistant", text)
