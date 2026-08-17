@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from dataclasses import asdict
 from pathlib import Path
 
 from arca.memory import MemoryStore
@@ -39,7 +40,7 @@ def main() -> None:
         if args.text:
             corpus.add(args.text.read_text(encoding="utf-8"), "file://" + str(args.text), args.text.name)
         report = NativeTrainingPipeline(corpus).train(args.output, ModelConfig(hidden_size=args.hidden, embedding_size=args.embedding), args.epochs)
-        print(json.dumps({"status": "trained", **report.__dict__}, indent=2))
+        print(json.dumps({"status": "trained", **asdict(report)}, indent=2))
     elif args.command == "generate":
         print(ARCALanguageModel.load(args.model).generate(args.prompt, args.tokens, args.temperature))
     else:
